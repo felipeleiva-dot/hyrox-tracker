@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HYROX Tracker Premium - Felipe & Rosemary</title>
+  
+  <!-- Tailwind CSS para diseño de alta gama -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js para visualización de analíticas -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts: Space Grotesk para tipografía industrial/deportiva -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            hyroxYellow: '#FFD60A',
+            hyroxYellowHover: '#E2BD00',
+            bgDark: '#050505',
+            bgCard: '#121212',
+            bgInput: '#1A1A1A',
+            borderColor: '#262626'
+          },
+          fontFamily: {
+            sans: ['Space Grotesk', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    body {
+      background-color: #050505;
+      color: #F4F4F5;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type="range"]:focus {
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      background: #262626;
+      border-radius: 4px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      height: 24px;
+      width: 24px;
+      border-radius: 50%;
+      background: #FFD60A;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body class="pb-28">
+
+  <!-- ALERTAS EMERGENGENTES TOAST -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-sm flex flex-col gap-2 pointer-events-none"></div>
+
+  <div class="max-w-md mx-auto px-4 pt-6">
+    
+    <!-- CABECERA DE LA APP -->
+    <header class="text-center mb-6">
+      <h1 class="text-3xl font-extrabold tracking-tight">HYROX <span class="text-hyroxYellow">BARCELONA</span></h1>
+      <p class="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Road to sub-80 Mixed Doubles</p>
+    </header>
+
+    <!-- INTERRUPTOR DE ATLETA ACTIVO -->
+    <div class="bg-bgCard p-1 rounded-xl border border-borderColor flex mb-6 shadow-lg">
+      <button onclick="setAtletaActivo('Felipe')" id="btn-atleta-Felipe" class="flex-1 py-3 text-center rounded-lg font-bold uppercase text-xs tracking-wider transition-all duration-300 bg-hyroxYellow text-black">
+        Felipe
+      </button>
+      <button onclick="setAtletaActivo('Rosemary')" id="btn-atleta-Rosemary" class="flex-1 py-3 text-center rounded-lg font-bold uppercase text-xs tracking-wider transition-all duration-300 text-zinc-400">
+        Rosemary
+      </button>
+    </div>
+
+    <!-- TARJETA DEL PLAN SUGERIDO PARA HOY (Dinamizada según fecha) -->
+    <div id="plan-hoy-card" class="bg-gradient-to-br from-[#1c1a0a] to-bgCard border-l-4 border-hyroxYellow rounded-2xl p-5 mb-6 shadow-xl border border-borderColor">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-hyroxYellow bg-yellow-950/50 px-2.5 py-1 rounded border border-yellow-800/40" id="plan-hoy-tag">Cargando...</span>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 bg-zinc-900 px-2 py-1 rounded border border-zinc-800" id="plan-hoy-week-tag">W--</span>
+        </div>
+        <span class="text-xs font-bold text-zinc-500" id="plan-hoy-date">--/--/----</span>
+      </div>
+      <h3 class="text-base font-extrabold uppercase text-white mb-2 leading-tight" id="plan-hoy-nombre">Cargando sesión...</h3>
+      <p class="text-xs text-zinc-400 mb-1" id="plan-hoy-loads">Cargas recomendadas: -</p>
+    </div>
+
+    <!-- ============================================================
+         VISTA 1: REGISTROS DE ENTRENAMIENTO (FORMULARIOS)
+         ============================================================ -->
+    <section id="view-registro" class="spa-view block">
+      
+      <!-- SUB-TABS DE FORMULARIOS -->
+      <div class="flex gap-2 overflow-x-auto pb-3 mb-4 no-scrollbar">
+        <button onclick="setSubTab('general')" id="subtab-general" class="subtab-btn px-4 py-2 bg-hyroxYellow text-black rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all">General</button>
+        <button onclick="setSubTab('fuerza')" id="subtab-fuerza" class="subtab-btn px-4 py-2 bg-bgCard border border-borderColor text-zinc-400 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all">Fuerza</button>
+        <button onclick="setSubTab('carrera')" id="subtab-carrera" class="subtab-btn px-4 py-2 bg-bgCard border border-borderColor text-zinc-400 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all">Intervalos</button>
+        <button onclick="setSubTab('biometricos')" id="subtab-biometricos" class="subtab-btn px-4 py-2 bg-bgCard border border-borderColor text-zinc-400 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all">Biometría</button>
+        <button onclick="setSubTab('tests')" id="subtab-tests" class="subtab-btn px-4 py-2 bg-bgCard border border-borderColor text-zinc-400 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all">Tests</button>
+      </div>
+
+      <!-- FORMULARIO GENERAL -->
+      <div id="form-content-general" class="subtab-panel block">
+        <form onsubmit="event.preventDefault(); saveGeneral();" class="bg-bgCard border border-borderColor rounded-2xl p-5 shadow-xl">
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Fecha de Sesión</label>
+            <input type="date" id="gen-fecha" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow focus:outline-none" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Tipo de Sesión</label>
+            <select id="gen-tipo" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow focus:outline-none">
+              <option value="Fuerza con Superseries">🏋️ Fuerza con Superseries</option>
+              <option value="Interval Run">🏃‍♂️ Interval Run (Umbral)</option>
+              <option value="Clase Hyrox">🔥 Clase Hyrox (Metabólico)</option>
+              <option value="Z2 Carrera">🏃‍♂️ Cardio Zona 2 (Carrera)</option>
+              <option value="Z2 Bici">🚲 Cardio Zona 2 (Bicicleta)</option>
+              <option value="Long Run">🏃‍♂️ Long Run con Progresión</option>
+              <option value="Pilates">🧘 Pilates / Movilidad Activa</option>
+              <option value="Simulacro">⏱ Simulacro de Carrera (Pareja)</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Nombre / Detalle de la rutina</label>
+            <input type="text" id="gen-detalle" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="Ej: Sentadilla Trasera + Peso Muerto" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Tiempo de Trabajo (MM:SS o HH:MM:SS)</label>
+            <input type="text" id="gen-tiempo" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="Ej: 45:20 o 01:12:00" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Distancia Corriendo (KM)</label>
+            <input type="number" step="0.01" id="gen-distancia" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="Ej: 8.5 (Opcional)">
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Frecuencia Cardíaca Promedio / Máxima</label>
+            <div class="grid grid-cols-2 gap-3">
+              <input type="number" id="gen-fc-prom" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" placeholder="FC Prom (ppm)">
+              <input type="number" id="gen-fc-max" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" placeholder="FC Máx (ppm)">
+            </div>
+          </div>
+          <div class="mb-6">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Esfuerzo Percibido (RPE)</label>
+            <div class="bg-bgInput border border-borderColor rounded-xl p-4">
+              <div class="text-center text-3xl font-extrabold text-hyroxYellow mb-1" id="rpe-val">7</div>
+              <div class="text-center text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-3" id="rpe-txt">Ritmo tempo, respiración fuerte pero sostenible</div>
+              <input type="range" min="1" max="10" value="7" class="w-full" oninput="updateRpeLabel(this.value)" id="gen-rpe">
+            </div>
+          </div>
+          <div class="mb-6">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Notas / Estado físico</label>
+            <textarea id="gen-notas" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow focus:outline-none" rows="2" placeholder="Notas sobre fatiga muscular o dolores..."></textarea>
+          </div>
+          <button type="submit" class="w-full bg-hyroxYellow text-black font-extrabold py-4 rounded-xl uppercase tracking-wider text-sm hover:bg-hyroxYellowHover transition-all active:scale-95">Guardar Sesión</button>
+        </form>
+      </div>
+
+      <!-- FORMULARIO FUERZA -->
+      <div id="form-content-fuerza" class="subtab-panel hidden">
+        <form onsubmit="event.preventDefault(); saveFuerza();" class="bg-bgCard border border-borderColor rounded-2xl p-5 shadow-xl">
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Fecha</label>
+            <input type="date" id="fuerza-fecha" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Ejercicio</label>
+            <select id="fuerza-ejercicio" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow">
+              <option value="Sentadilla trasera">Sentadilla Trasera</option>
+              <option value="Peso muerto">Peso Muerto</option>
+              <option value="Zancadas con barra">Walking Lunges con Barra</option>
+              <option value="Press de Banca">Press de Banca Plano</option>
+              <option value="Press Militar">Press Militar</option>
+              <option value="Remo Pendlay">Remo Pendlay / Remo Barra</option>
+              <option value="Hip Thrust">Hip Thrust</option>
+              <option value="Zancadas búlgaras">Zancadas Búlgaras</option>
+            </select>
+          </div>
+          <div class="mb-6">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Series</label>
+            <div id="fuerza-container" class="flex flex-col gap-2"></div>
+            <button type="button" onclick="addFilaFuerza()" class="w-full border border-dashed border-borderColor text-zinc-500 py-3 rounded-xl font-bold text-xs uppercase mt-3 hover:text-white transition-all">+ Añadir Serie</button>
+          </div>
+          <button type="submit" class="w-full bg-hyroxYellow text-black font-extrabold py-4 rounded-xl uppercase tracking-wider text-sm hover:bg-hyroxYellowHover transition-all">Guardar Series</button>
+        </form>
+      </div>
+
+      <!-- FORMULARIO INTERVALOS -->
+      <div id="form-content-carrera" class="subtab-panel hidden">
+        <form onsubmit="event.preventDefault(); saveCarrera();" class="bg-bgCard border border-borderColor rounded-2xl p-5 shadow-xl">
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Fecha</label>
+            <input type="date" id="carrera-fecha" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Tipo de Intervalos</label>
+            <select id="carrera-tipo" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow">
+              <option value="Intervalos 1km">Intervalos de 1 Kilómetro</option>
+              <option value="Intervalos 800m">Intervalos de 800 Metros</option>
+              <option value="Intervalos 400m">Intervalos de 400 Metros</option>
+            </select>
+          </div>
+          <div class="mb-6">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Intervalos Realizados</label>
+            <div id="carrera-container" class="flex flex-col gap-2"></div>
+            <button type="button" onclick="addFilaCarrera()" class="w-full border border-dashed border-borderColor text-zinc-500 py-3 rounded-xl font-bold text-xs uppercase mt-3 hover:text-white transition-all">+ Añadir Intervalo</button>
+          </div>
+          <button type="submit" class="w-full bg-hyroxYellow text-black font-extrabold py-4 rounded-xl uppercase tracking-wider text-sm hover:bg-hyroxYellowHover transition-all">Guardar Intervalos</button>
+        </form>
+      </div>
+
+      <!-- FORMULARIO BIOMÉTRICOS -->
+      <div id="form-content-biometricos" class="subtab-panel hidden">
+        <form onsubmit="event.preventDefault(); saveBiometricos();" class="bg-bgCard border border-borderColor rounded-2xl p-5 shadow-xl">
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Fecha</label>
+            <input type="date" id="bio-fecha" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Peso Corporal (kg)</label>
+            <input type="number" step="0.1" id="bio-peso" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" required>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Masa Muscular (kg)</label>
+              <input type="number" step="0.1" id="bio-musculo" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow">
+            </div>
+            <div>
+              <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">% Grasa Corporal</label>
+              <input type="number" step="0.1" id="bio-grasa" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">FC Reposo (ppm)</label>
+              <input type="number" id="bio-fc" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow">
+            </div>
+            <div>
+              <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Horas de Sueño</label>
+              <input type="number" step="0.5" id="bio-sueno" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow">
+            </div>
+          </div>
+          <div class="mb-6">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Notas de Salud / Suplementación</label>
+            <textarea id="bio-notas" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" rows="2"></textarea>
+          </div>
+          <button type="submit" class="w-full bg-hyroxYellow text-black font-extrabold py-4 rounded-xl uppercase tracking-wider text-sm hover:bg-hyroxYellowHover transition-all">Guardar Biometría</button>
+        </form>
+      </div>
+
+      <!-- FORMULARIO TESTS -->
+      <div id="form-content-tests" class="subtab-panel hidden">
+        <form onsubmit="event.preventDefault(); saveTest();" class="bg-bgCard border border-borderColor rounded-2xl p-5 shadow-xl">
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Fecha del Test</label>
+            <input type="date" id="test-fecha" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Prueba de Rendimiento</label>
+            <select id="test-tipo" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow">
+              <option value="Test 5K">🏃‍♂️ Test 5K (Time Trial)</option>
+              <option value="Test 10K">🏃‍♂️ Test 10K (Time Trial)</option>
+              <option value="Simulacro 50%">⏱ Simulacro 50% Hyrox (4km + 4 Estaciones)</option>
+              <option value="Simulacro 75%">⏱ Simulacro 75% Hyrox (6km + 6 Estaciones)</option>
+              <option value="Hyrox Completo">🏁 Hyrox Completo (Prueba Oficial)</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Resultado / Marca de Tiempo</label>
+            <input type="text" id="test-resultado" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" placeholder="Ej: 21:45 o 1:28:57" required>
+          </div>
+          <div class="mb-6">
+            <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Notas de la Prueba</label>
+            <textarea id="test-detalle" class="form-control bg-bgInput border border-borderColor text-white w-full p-4 rounded-xl focus:border-hyroxYellow" rows="2" placeholder="Ej: Clima, fatiga previa, ritmos intermedios..."></textarea>
+          </div>
+          <button type="submit" class="w-full bg-hyroxYellow text-black font-extrabold py-4 rounded-xl uppercase tracking-wider text-sm hover:bg-hyroxYellowHover transition-all">Guardar Benchmark</button>
+        </form>
+      </div>
+
+    </section>
+
+    <!-- ============================================================
+         VISTA 2: DASHBOARD (MÉTRICAS Y GRÁFICOS)
+         ============================================================ -->
+    <section id="view-dashboard" class="spa-view hidden">
+      
+      <!-- GRID DE METRICAS DEL ULTIMO MES -->
+      <h2 class="text-sm font-extrabold uppercase tracking-wider text-zinc-500 mb-3">Estadísticas (Últimos 28 Días)</h2>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="bg-bgCard border border-borderColor p-4 rounded-xl">
+          <span class="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider">Running Acumulado</span>
+          <div class="text-2xl font-extrabold text-hyroxYellow mt-1" id="kpi-run">0 km</div>
+        </div>
+        <div class="bg-bgCard border border-borderColor p-4 rounded-xl">
+          <span class="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider">Entrenos Logrados</span>
+          <div class="text-2xl font-extrabold text-white mt-1" id="kpi-sesiones">0</div>
+        </div>
+        <div class="bg-bgCard border border-borderColor p-4 rounded-xl">
+          <span class="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider">RPE Promedio</span>
+          <div class="text-2xl font-extrabold text-white mt-1" id="kpi-rpe">0 / 10</div>
+        </div>
+        <div class="bg-bgCard border border-borderColor p-4 rounded-xl">
+          <span class="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider">Frecuencia Cardíaca</span>
+          <div class="text-2xl font-extrabold text-white mt-1" id="kpi-fc">- ppm</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="bg-bgCard border border-borderColor p-4 rounded-xl border-l-4 border-l-emerald-500">
+          <span class="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider">Peso de Báscula</span>
+          <div class="text-2xl font-extrabold text-white mt-1" id="kpi-peso">- kg</div>
+        </div>
+        <div class="bg-bgCard border border-borderColor p-4 rounded-xl border-l-4 border-l-red-500">
+          <span class="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider">Grasa Corporal</span>
+          <div class="text-2xl font-extrabold text-white mt-1" id="kpi-grasa">-%</div>
+        </div>
+      </div>
+
+      <!-- GRAFICO KM SEMANALES -->
+      <div class="bg-bgCard border border-borderColor rounded-2xl p-4 mb-4">
+        <h3 class="text-sm font-extrabold uppercase tracking-wider text-white mb-4">Volumen de Running Semanal</h3>
+        <div class="chart-container">
+          <canvas id="chartWeeklyKms"></canvas>
+        </div>
+      </div>
+
+      <!-- GRAFICO PESO -->
+      <div class="bg-bgCard border border-borderColor rounded-2xl p-4 mb-6">
+        <h3 class="text-sm font-extrabold uppercase tracking-wider text-white mb-4">Evolución de Peso Corporal (kg)</h3>
+        <div class="chart-container">
+          <canvas id="chartWeightTrend"></canvas>
+        </div>
+      </div>
+
+      <!-- BENCHMARKS TESTS -->
+      <div class="bg-bgCard border border-borderColor rounded-2xl p-5 mb-6">
+        <h3 class="text-sm font-extrabold uppercase tracking-wider text-white mb-4">Benchmarks & Rendimiento</h3>
+        <div class="flex flex-col gap-3">
+          <div class="flex justify-between items-center border-b border-borderColor pb-3">
+            <span class="text-sm font-bold text-zinc-400">Test 5K (Time Trial)</span>
+            <span class="font-extrabold text-hyroxYellow text-base" id="test-5k-val">-</span>
+          </div>
+          <div class="flex justify-between items-center border-b border-borderColor pb-3">
+            <span class="text-sm font-bold text-zinc-400">Test 10K (Time Trial)</span>
+            <span class="font-extrabold text-hyroxYellow text-base" id="test-10k-val">-</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-bold text-zinc-400">Último Simulacro Hyrox</span>
+            <span class="font-extrabold text-hyroxYellow text-base" id="test-sim-val">-</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================
+         VISTA 3: MI PLANIFICADOR (SISTEMA DE PERIODIZACIÓN)
+         ============================================================ -->
+    <section id="view-plan" class="spa-view hidden">
+      <div class="flex flex-col gap-3 mb-6 bg-bgCard border border-borderColor p-4 rounded-2xl shadow-xl">
+        <h2 class="text-base font-extrabold uppercase text-white tracking-tight">Estructura del Periodo (24 Semanas)</h2>
+        
+        <!-- Selector rápido de Mesociclo y Semana -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block mb-1">Mesociclo</label>
+            <select id="plan-filtro-mesociclo" onchange="seleccionarMesocicloDesdeFiltro(this.value)" class="bg-bgInput border border-borderColor text-white text-xs font-bold p-3 rounded-xl focus:outline-none w-full">
+              <option value="M1">M1: Base Aeróbica</option>
+              <option value="M2" selected>M2: Fuerza-Resistencia</option>
+              <option value="M3">M3: Bloque Mixto</option>
+              <option value="M4">M4: Especificidad & Taper</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block mb-1">Semana de Plan</label>
+            <select id="plan-filtro-semana" onchange="actualizarCalendarioSemanal(parseInt(this.value))" class="bg-bgInput border border-borderColor text-white text-xs font-bold p-3 rounded-xl focus:outline-none w-full">
+              <!-- Semanas inyectadas dinámicamente -->
+            </select>
+          </div>
+        </div>
+        
+        <div class="flex items-center justify-between border-t border-borderColor pt-3 mt-1">
+          <span class="text-xs font-bold text-zinc-400 uppercase">Estado del Microciclo:</span>
+          <span id="plan-semana-status-tag" class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded">-</span>
+        </div>
+      </div>
+
+      <div id="weekly-plan-list" class="flex flex-col gap-4">
+        <!-- Calendario dinámico con botones de edición -->
+      </div>
+    </section>
+
+    <!-- ============================================================
+         VISTA 4: RESPALDO DE DATOS (IMPORTACIÓN / EXPORTACIÓN)
+         ============================================================ -->
+    <section id="view-settings" class="spa-view hidden">
+      <div class="bg-bgCard border border-borderColor rounded-2xl p-5 mb-6 shadow-xl">
+        <div class="card-header">
+          <h2 class="text-lg font-extrabold uppercase">Base de Datos Portátil</h2>
+        </div>
+        <p class="text-sm text-zinc-400 mb-4 leading-relaxed">
+          Para evitar perder vuestros datos o sincronizarlos entre vuestros dispositivos, podéis descargar vuestro progreso en un archivo JSON o importar datos existentes.
+        </p>
+        
+        <!-- EXPORTAR -->
+        <button onclick="exportarBaseDatos()" class="w-full bg-zinc-800 text-white font-extrabold py-3.5 rounded-xl uppercase tracking-wider text-xs hover:bg-zinc-700 transition-all mb-3">
+          📥 Exportar Datos (Descargar JSON)
+        </button>
+
+        <div class="border-t border-borderColor my-5"></div>
+
+        <!-- IMPORTAR -->
+        <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Importar base de datos existente</label>
+        <input type="file" id="file-import" class="hidden" accept=".json" onchange="importarBaseDatos(this)">
+        <button onclick="document.getElementById('file-import').click()" class="w-full border border-zinc-700 text-zinc-400 font-extrabold py-3.5 rounded-xl uppercase tracking-wider text-xs hover:text-white hover:border-zinc-500 transition-all mb-4">
+          📤 Seleccionar Archivo JSON
+        </button>
+
+        <div class="border-t border-borderColor my-5"></div>
+
+        <!-- RESET TOTAL -->
+        <button onclick="confirmarReinicioPlan()" class="w-full bg-red-950/20 text-red-500 border border-red-900/30 font-extrabold py-3.5 rounded-xl uppercase tracking-wider text-xs hover:bg-red-900/40 transition-all">
+          ⚠️ Restaurar Plan de Fábrica (Reiniciar)
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============================================================
+       MODAL FLOTANTE: EDITOR DE PLANIFICACIÓN DIARIA
+       ============================================================ -->
+  <div id="plan-edit-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[110] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-bgCard border border-borderColor rounded-2xl w-full max-w-sm p-6 shadow-2xl translate-y-4 transition-transform duration-300" id="plan-edit-modal-content">
+      <div class="flex items-center justify-between border-b border-borderColor pb-3 mb-4">
+        <h3 class="text-base font-extrabold uppercase text-white">Editar Día - <span id="modal-dia-header" class="text-hyroxYellow">Lun</span></h3>
+        <button onclick="cerrarModalEdicion()" class="text-zinc-400 hover:text-white font-bold text-xl">&times;</button>
+      </div>
+      
+      <form onsubmit="event.preventDefault(); guardarEdicionPlan();">
+        <input type="hidden" id="modal-dia-id">
+        <input type="hidden" id="modal-semana-id">
+
+        <div class="mb-4">
+          <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Tipo de Entrenamiento</label>
+          <select id="modal-tipo" class="form-control bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none">
+            <option value="Interval Run">🏃‍♂️ Interval Run</option>
+            <option value="Fuerza con Superseries">🏋️ Fuerza con Superseries</option>
+            <option value="Clase Hyrox">🔥 Clase Hyrox</option>
+            <option value="Z2 Carrera">🏃‍♂️ Cardio Zona 2 (Carrera)</option>
+            <option value="Z2 Bici">🚲 Cardio Zona 2 (Bicicleta)</option>
+            <option value="Long Run">🏃‍♂️ Long Run</option>
+            <option value="Pilates">🧘 Pilates / Movilidad</option>
+            <option value="Descanso">🧘 Descanso / Recuperación</option>
+            <option value="EMOM Metabólico">⏱ EMOM Metabólico</option>
+            <option value="Fuerza + Brick">🧱 Fuerza + Brick</option>
+            <option value="Simulacro Hyrox">⏱ Simulacro Hyrox</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Nombre / Detalle de la Sesión</label>
+          <textarea id="modal-sesion" class="form-control bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none" rows="3" required></textarea>
+        </div>
+
+        <div class="mb-6">
+          <label class="form-label text-zinc-400 text-xs font-bold uppercase mb-2 block">Cargas / Ritmos Recomendados</label>
+          <textarea id="modal-cargas" class="form-control bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none" rows="2"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" onclick="cerrarModalEdicion()" class="w-full bg-zinc-800 text-white font-extrabold py-3 rounded-xl uppercase tracking-wider text-xs">Cancelar</button>
+          <button type="submit" class="w-full bg-hyroxYellow text-black font-extrabold py-3 rounded-xl uppercase tracking-wider text-xs hover:bg-hyroxYellowHover">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- NAVEGACIÓN MÓVIL INFERIOR DE LA SPA (CORREGIDA) -->
+  <nav class="fixed bottom-0 left-0 right-0 h-16 bg-[#121212]/95 border-t border-[#262626] flex justify-around items-center backdrop-blur-md z-50 max-w-md mx-auto">
+    <div onclick="switchView('registro')" id="nav-btn-registro" class="flex flex-col items-center justify-center text-hyroxYellow font-bold text-[10px] uppercase w-1/4 h-full cursor-pointer transition-colors duration-200">
+      <svg class="w-5 h-5 mb-1 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M12 20h9M3 20h9M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM12 8v8m-4-4h8"/></svg>
+      Registro
+    </div>
+    <div onclick="switchView('dashboard')" id="nav-btn-dashboard" class="flex flex-col items-center justify-center text-zinc-500 hover:text-zinc-300 font-bold text-[10px] uppercase w-1/4 h-full cursor-pointer transition-colors duration-200">
+      <svg class="w-5 h-5 mb-1 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 3v18h18M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+      Dashboard
+    </div>
+    <div onclick="switchView('plan')" id="nav-btn-plan" class="flex flex-col items-center justify-center text-zinc-500 hover:text-zinc-300 font-bold text-[10px] uppercase w-1/4 h-full cursor-pointer transition-colors duration-200">
+      <svg class="w-5 h-5 mb-1 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-5 14H7m8-4H7m8-4H7"/></svg>
+      Planificador
+    </div>
+    <div onclick="switchView('settings')" id="nav-btn-settings" class="flex flex-col items-center justify-center text-zinc-500 hover:text-zinc-300 font-bold text-[10px] uppercase w-1/4 h-full cursor-pointer transition-colors duration-200">
+      <svg class="w-5 h-5 mb-1 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      Datos
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       INTELIGENCIA JAVASCRIPT: LÓGICA DE NEGOCIO Y ESTADO LOCAL
+       ============================================================ -->
+  <script>
+    // --- ESTADO INICIAL ---
+    let atletaActivo = 'Felipe';
+    let vistaActiva = 'registro';
+    let subTabActiva = 'general';
+    let fechaGlobalActiva = new Date().toISOString().split('T')[0];
+    let semanaSeleccionadaPlan = 5; // Semana inicial por defecto en M2 para visualización
+
+    // Mapeo dinámico de Mesociclos y Semanas
+    const LIMITES_MESOCICLOS = {
+      M1: { min: 1, max: 4, nombre: "Mesociclo 1: Base Aeróbica" },
+      M2: { min: 5, max: 9, nombre: "Mesociclo 2: Fuerza-Resistencia" },
+      M3: { min: 10, max: 14, nombre: "Mesociclo 3: Bloque Mixto" },
+      M4: { min: 15, max: 24, nombre: "Mesociclo 4: Especificidad & Taper" }
+    };
+
+    const RPE_SENSACIONES = {
+      1: "Trote de recuperación regenerativo",
+      2: "Esfuerzo extremadamente suave",
+      3: "Trote social, fácil hablar de corrido (Z2)",
+      4: "Base aeróbica, cómodo y constante",
+      5: "Esfuerzo intermedio controlado",
+      6: "Esfuerzo moderadamente exigente",
+      7: "Rimo tempo, respiración fuerte pero sostenible",
+      8: "Ritmo umbral, fatiga acumulándose rápido",
+      9: "Esfuerzo casi máximo, alta acumulación de lactato",
+      10: "Pico de simulación de carrera o test, al fallo"
+    };
+
+    const DIAS_COMPLETOS = {
+      'Lun': 'Lunes', 'Mar': 'Martes', 'Mié': 'Miércoles',
+      'Jue': 'Jueves', 'Vie': 'Viernes', 'Sáb': 'Sábado', 'Dom': 'Domingo'
+    };
+
+    // Estructuras de bases de datos internas del local storage
+    let database = {
+      sesiones: [],
+      fuerza: [],
+      carrera: [],
+      biometricos: [],
+      tests: [],
+      plan: {} // Contendrá toda la planificación editable
+    };
+
+    let chartKmsInstancia = null;
+    let chartPesosInstancia = null;
+
+    // --- CARGAR BASE DE DATOS LOCAL ---
+    function cargarBaseDatos() {
+      const dataGuardada = localStorage.getItem('hyrox_tracker_db');
+      if (dataGuardada) {
+        database = JSON.parse(dataGuardada);
+        // Validar si el plan maestro nuevo no existe en la BD antigua
+        if (!database.plan || Object.keys(database.plan).length === 0) {
+          inicializarPlanMaestroPlantilla();
+        }
+      } else {
+        inicializarPlanMaestroPlantilla();
+      }
+    }
+
+    function guardarBaseDatos() {
+      localStorage.setItem('hyrox_tracker_db', JSON.stringify(database));
+    }
+
+    // --- GENERADOR DEL PLAN MAESTRO EDITABLE (24 SEMANAS DE PLANIFICACIÓN DE FÁBRICA) ---
+    function inicializarPlanMaestroPlantilla() {
+      const plan = { Felipe: {}, Rosemary: {} };
+      const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+      for (let w = 1; w <= 24; w++) {
+        plan.Felipe[w] = {};
+        plan.Rosemary[w] = {};
+        
+        let mesociclo = "M1";
+        let esDescarga = (w === 4 || w === 9 || w === 14 || w === 20 || w === 23);
+        if (w <= 4) mesociclo = "M1";
+        else if (w <= 9) mesociclo = "M2";
+        else if (w <= 14) mesociclo = "M3";
+        else mesociclo = "M4";
+
+        dias.forEach(dia => {
+          let tipo = "Descanso";
+          let sesion = "Descanso activo y recuperación muscular.";
+          let cargas = "Priorizar descanso, hidratación profunda y recarga proteica.";
+
+          // Felipe: Plantilla de Progresión Lineal
+          if (mesociclo === "M1") {
+            if (dia === 'Lun') {
+              tipo = "Interval Run";
+              sesion = esDescarga 
+                ? "Trote regenerativo: 3x800 m @ 6:00/km. Descanso completo." 
+                : `Intervalos de Carrera: ${3 + w}x800 m @ 5:30 min/km. Recuperación: 2 min.`;
+              cargas = "Mantener FC en Zona 4 (160-175 ppm).";
+            } else if (dia === 'Mar') {
+              tipo = "Fuerza con Superseries";
+              sesion = esDescarga 
+                ? "Levantamiento ligero: Sentadilla trasera 3x5 @ 165 lb, Press Militar 3x8 @ 75 lb." 
+                : "Fuerza General: Sentadilla trasera 4x5 @ 230 lb (80% 1RM), Press Militar 3x6 @ 100 lb.";
+              cargas = "Descanso de 2 min entre series. Enfoque técnico.";
+            } else if (dia === 'Mié') {
+              tipo = "Clase Hyrox";
+              sesion = "Clase Grupal Metabólica en el Box. Enfoque en transiciones y ritmo medio.";
+              cargas = esDescarga ? "RPE 6. Mantener FC controlada." : "RPE 8. Gestión de fatiga muscular.";
+            } else if (dia === 'Vie') {
+              tipo = "Fuerza con Superseries";
+              sesion = esDescarga
+                ? "Fuerza ligera: Zancadas con barra 3x10 pasos. Trote 3 km en Z2."
+                : "Fuerza: Zancadas con barra 3x10 pasos @ 100 lb, Peso Muerto 4x5 @ 280 lb. Trote posterior de 4 km.";
+              cargas = "Zancadas controlando el torso. Carrera en Zona 2 estricta.";
+            } else if (dia === 'Sáb') {
+              tipo = "Z2 Carrera";
+              sesion = esDescarga 
+                ? "Carrera corta regenerativa: 4 km en Z2." 
+                : `Carrera Larga Z2: ${6 + w} km continuos en Zona 2 estricta.`;
+              cargas = "Frecuencia cardíaca ideal entre 125 y 143 ppm.";
+            } else if (dia === 'Dom') {
+              tipo = "Long Run";
+              sesion = esDescarga ? "Trote suave de descarga de 5km" : `Long Run: ${8 + w} km suaves en Zona 2.`;
+              cargas = "Progresar volumen cómodamente.";
+            }
+          } else if (mesociclo === "M2") {
+            const factor = w - 4; // Factor progresivo de 1 a 5 semanas de M2
+            if (dia === 'Lun') {
+              tipo = "Interval Run";
+              sesion = esDescarga 
+                ? "Intervalos cómodos de descarga: 4x800 m @ 5:40/km." 
+                : `Intervalos de Umbral: ${4 + factor}x1 km @ 5:15-5:25 min/km.`;
+              cargas = "2 min de descanso pasivo entre series. Mantener ritmo constante.";
+            } else if (dia === 'Mar') {
+              tipo = "Fuerza con Superseries";
+              sesion = esDescarga
+                ? "Superserie A (Ligera): Sentadilla trasera 3x6 @ 185 lb + Remo barra 3x8 @ 110 lb."
+                : `Superserie A: Sentadilla trasera 4x6 @ ${200 + factor * 5} lb + Remo barra 4x8 @ 135 lb.`;
+              cargas = "Descansar 90 segundos entre series. RPE 7-8.";
+            } else if (dia === 'Mié') {
+              tipo = "Clase Hyrox";
+              sesion = "Clase Grupal Metabólica en el Box. Transición de fuerza a carrera.";
+              cargas = esDescarga ? "RPE 7. Ritmo cómodo." : "RPE 8. Sostener ritmo de carrera.";
+            } else if (dia === 'Vie') {
+              tipo = "Fuerza con Superseries";
+              sesion = esDescarga
+                ? "Superserie B (Ligera): Peso Muerto 3x6 @ 225 lb + Plancha 3x30s."
+                : `Superserie B: Peso Muerto 4x5 @ ${245 + factor * 5} lb + Plancha lastrada 4x40s @ 25 lb.`;
+              cargas = "Zancadas búlgaras y press de banca como accesorios.";
+            } else if (dia === 'Sáb') {
+              tipo = "Z2 Carrera";
+              sesion = esDescarga 
+                ? "Z2 ligera: 5 km en Z2." 
+                : `Cardio Zona 2: ${45 + factor * 5} min de carrera estricta.`;
+              cargas = "FC: 125-143 ppm. Respiración nasal controlada.";
+            } else if (dia === 'Dom') {
+              tipo = "Long Run";
+              sesion = esDescarga 
+                ? "Trote suave de descarga: 6 km en Z2." 
+                : `Long Run Progresivo: ${9 + factor} km. Últimos 15 min a ritmo medio.`;
+              cargas = "Acumulación de fatiga activa controlada.";
+            }
+          } else if (mesociclo === "M3") {
+            const factor = w - 9; // Factor progresivo de 1 a 5 semanas de M3
+            if (dia === 'Lun') {
+              tipo = "Interval Run";
+              sesion = esDescarga 
+                ? "Máquinas de descarga: Ski Erg 4x1:30 min cómodo." 
+                : `Ski + Row Threshold Intervals: 6x2:00 min @ ritmo 2k + 6s.`;
+              cargas = "45 segundos de descanso pasivo entre series. Motor puro.";
+            } else if (dia === 'Mar') {
+              tipo = "Fuerza + Brick";
+              sesion = esDescarga
+                ? "Fuerza ligera 3x6 + Mini Brick de 1 km."
+                : `Fuerza: Sentadilla 4x5 @ 235 lb. Brick posterior: 2 km carrera + 40 Wall Balls + 1 km carrera.`;
+              cargas = "Practicar transición directa y sostener el ritmo bajo fatiga extrema.";
+            } else if (dia === 'Mié') {
+              tipo = "Clase Hyrox";
+              sesion = "Clase Grupal Metabólica en el Box. Ritmo e intensidad específicos.";
+              cargas = "RPE 8.5. Monitorear respiración.";
+            } else if (dia === 'Vie') {
+              tipo = "EMOM Metabólico";
+              sesion = esDescarga
+                ? "EMOM de recuperación: 15 min (12 Cal Row, 10 DB Snatches, descanso)."
+                : `EMOM Metabólico: 20 min (Min 1: 15 Cal Row, Min 2: 12 DB Snatches, Min 3: 12 Burpees, Min 4: Descanso).`;
+              cargas = "Mantener intensidad constante. No explotar en los primeros minutos.";
+            } else if (dia === 'Sáb') {
+              tipo = "Z2 Carrera";
+              sesion = esDescarga 
+                ? "Carrera suave: 6 km en Z2." 
+                : `Cardio Zona 2: 60 min de carrera continua en Z2.`;
+              cargas = "Base mitocondrial. No acelerar.";
+            } else if (dia === 'Dom') {
+              tipo = "Long Run";
+              sesion = esDescarga
+                ? "Trote suave: 8 km."
+                : `Long Run: ${13 + factor} km + Finisher AMRAP 15 min (Bike, Ski, Row).`;
+              cargas = "Aprender a aguantar la fatiga del tren superior tras correr.";
+            }
+          } else if (mesociclo === "M4") {
+            if (dia === 'Lun') {
+              tipo = "Fuerza Específica";
+              sesion = "Fuerza específica Hyrox: Sled Push pesado 4x25m, Wall Balls 4x25, Ski Erg 4x400m.";
+              cargas = "Descansos cortos de 60s. Enfoque puramente metabólico.";
+            } else if (dia === 'Mar') {
+              tipo = "Fuerza + Brick";
+              sesion = "Sesión específica Hyrox: 2 km carrera umbral + 2 estaciones x 3 rondas (Ski Erg & Sled Pull).";
+              cargas = "Simular las condiciones y transiciones reales de Barcelona.";
+            } else if (dia === 'Mié') {
+              tipo = "Clase Hyrox";
+              sesion = "Clase Metabólica del Box. Trabajo continuo en equipo.";
+              cargas = "Enfoque en estrategia de dobles.";
+            } else if (dia === 'Vie') {
+              tipo = "Interval Run";
+              sesion = "Intervalos de carrera específica: 3x2 km a ritmo de carrera. 3 min de descanso.";
+              cargas = "Ritmo de carrera: ~5:30/km.";
+            } else if (dia === 'Sáb') {
+              tipo = "Simulacro Hyrox";
+              if (w === 15) {
+                sesion = "⏱ Simulacro 50% Hyrox: 4 km carrera + 4 estaciones específicas.";
+              } else if (w === 16) {
+                sesion = "⏱ Simulacro 75% Hyrox: 6 km carrera + 6 estaciones específicas.";
+              } else if (w === 17) {
+                sesion = "🧘 Deload week: Solo trote suave de 4 km y estiramientos.";
+              } else if (w === 18) {
+                sesion = "🏁 ¡SIMULACRO HYROX COMPLETO #1! (8 km + 8 estaciones en pareja).";
+              } else if (w === 19) {
+                sesion = "⏱ Simulacro 75% Hyrox: Enfoque en debilidades y transiciones.";
+              } else if (w === 20) {
+                sesion = "🧘 Deload week: Descanso activo. Movilidad articular.";
+              } else if (w === 21) {
+                sesion = "🏁 ¡SIMULACRO HYROX COMPLETO #2! (Tu predictor real de carrera).";
+              } else if (w === 22) {
+                sesion = "⏱ Simulacro 50% Hyrox (Tapering para ganar frescura).";
+              } else if (w === 23) {
+                sesion = "🧘 Descanso activo y preparación mental. 5 km trote suave.";
+              } else if (w === 24) {
+                sesion = "🏆 ¡DÍA DE COMPETENCIA: HYROX BARCELONA 2026! 🏆";
+              }
+              cargas = "Practicar reparto de estaciones (Wall Balls, Burpees) y comunicación.";
+            } else if (dia === 'Dom') {
+              tipo = "Descanso";
+              sesion = "Caminata suave de recuperación activa de 30 minutos.";
+              cargas = "Optimizar la recarga calórica y descanso.";
+            }
+          }
+
+          // Rosemary: Plantilla Personalizada a sus cargas y Pilates
+          let r_tipo = tipo;
+          let r_sesion = sesion;
+          let r_cargas = cargas;
+
+          if (mesociclo === "M1") {
+            if (dia === 'Lun') {
+              r_sesion = esDescarga 
+                ? "Trote regenerativo: 3x800 m @ 7:45/km" 
+                : `Intervalos de Carrera: ${3 + w}x800 m @ 7:30 min/km. Recuperación: 2 min.`;
+              r_cargas = "FC en Zona 4. Enfocarse en técnica de zancada.";
+            } else if (dia === 'Mar') {
+              r_sesion = esDescarga 
+                ? "Fuerza ligera: Sentadilla trasera 3x5 @ 100 lb, Press militar con mancuernas 3x8." 
+                : "Fuerza General: Sentadilla trasera 4x5 @ 135 lb (70% 1RM), Dominadas asistidas 3x8.";
+              r_cargas = "RPE 7. Controlar bajada (fase excéntrica).";
+            } else if (dia === 'Vie') {
+              r_sesion = esDescarga
+                ? "Fuerza ligera: Zancadas con mancuernas 3x10 pasos. Trote 2.5 km en Z2."
+                : "Fuerza: Zancadas con barra 3x10 pasos @ 65 lb, Peso Muerto 4x5 @ 145 lb. Trote posterior de 3 km.";
+              r_cargas = "RPE 7. Mantener postura firme de espalda.";
+            } else if (dia === 'Sáb') {
+              r_sesion = esDescarga 
+                ? "Carrera corta regenerativa: 3.5 km en Z2." 
+                : `Carrera Larga Z2: ${5 + w} km continuos en Zona 2 estricta.`;
+              r_cargas = "Mantener respiración fluida nasal. Ritmo social.";
+            }
+          } else if (mesociclo === "M2") {
+            const factor = w - 4;
+            if (dia === 'Lun') {
+              r_sesion = esDescarga 
+                ? "Intervalos cómodos de descarga: 4x800 m @ 7:30/km." 
+                : `Intervalos de Umbral: ${4 + factor}x800 m @ ~6:45 min/km.`;
+              r_cargas = "2 min de descanso pasivo. Sostener el ritmo.";
+            } else if (dia === 'Mar') {
+              r_sesion = esDescarga
+                ? "Superserie A (Ligera): Sentadilla trasera 3x6 @ 90 lb + Remo barra 3x8 @ 55 lb."
+                : `Superserie A: Sentadilla trasera 4x6 @ ${110 + factor * 5} lb + Remo barra 4x8 @ 75 lb.`;
+              r_cargas = "RPE 7-8. Enfocarse en romper el paralelo.";
+            } else if (dia === 'Jue') {
+              r_tipo = "Pilates";
+              r_sesion = "🧘 Pilates Dinámico: Enfoque en core y estabilidad de caderas.";
+              r_cargas = "Día excelente para evitar lesiones de running y mejorar postura.";
+            } else if (dia === 'Vie') {
+              r_sesion = esDescarga
+                ? "Superserie B (Ligera): Peso Muerto 3x6 @ 115 lb + Plancha 3x30s."
+                : `Superserie B: Peso Muerto 4x6 @ ${135 + factor * 5} lb + Plancha lastrada 4x45s.`;
+              r_cargas = "Control técnico estricto.";
+            } else if (dia === 'Sáb') {
+              r_sesion = esDescarga 
+                ? "Z2 ligera: 4 km en Z2." 
+                : `Cardio Zona 2: ${35 + factor * 5} min de carrera estricta.`;
+              r_cargas = "Mantener FC abajo del umbral.";
+            } else if (dia === 'Dom') {
+              r_sesion = esDescarga 
+                ? "Trote suave de descarga: 5 km en Z2." 
+                : `Long Run Progresivo: ${7 + factor} km continuos en Zona 2.`;
+              r_cargas = "Mantener ritmo social.";
+            }
+          } else if (mesociclo === "M3") {
+            const factor = w - 9;
+            if (dia === 'Lun') {
+              r_sesion = esDescarga 
+                ? "Máquinas de descarga: Ski Erg 4x1:30 min cómodo." 
+                : `Ski + Row Threshold Intervals: 5x1:30 min @ ritmos propios.`;
+              r_cargas = "45 segundos de descanso pasivo. Sostener la potencia de jalón.";
+            } else if (dia === 'Mar') {
+              r_sesion = esDescarga
+                ? "Fuerza ligera 3x6 + Mini Brick de 1 km."
+                : `Fuerza: Sentadilla 4x6 @ 135 lb. Brick: 1 km carrera + 30 Wall Balls + 1 km carrera.`;
+              r_cargas = "Simular transiciones con fatiga.";
+            } else if (dia === 'Jue') {
+              r_tipo = "Pilates";
+              r_sesion = "🧘 Pilates Dinámico: Enfoque en core y movilidad de cadera.";
+              r_cargas = "Trabajar la respiración costal.";
+            } else if (dia === 'Vie') {
+              r_sesion = esDescarga
+                ? "EMOM de descarga: 12 min (10 Cal Row, 8 DB Snatches)."
+                : `EMOM Metabólico: 16 min (Min 1: 12 Cal Row, Min 2: 10 DB Snatches, Min 3: 8 Burpees, Min 4: Descanso).`;
+              r_cargas = "Movimiento fluido.";
+            } else if (dia === 'Sáb') {
+              r_sesion = esDescarga 
+                ? "Z2 ligera: 5 km en Z2." 
+                : `Cardio Zona 2: 50 min de carrera continua en Z2.`;
+              r_cargas = "No sobrepasar las zonas cardiacas.";
+            } else if (dia === 'Dom') {
+              r_sesion = esDescarga
+                ? "Trote suave: 6 km."
+                : `Long Run: ${9 + factor} km en Zona 2 estricta.`;
+              r_cargas = "Resistencia pura.";
+            }
+          } else if (mesociclo === "M4") {
+            if (dia === 'Lun') {
+              r_sesion = "Fuerza específica Hyrox: Sled Push 4x25m (peso adaptado), Wall Balls 4x20 (comp weight), Ski Erg 4x300m.";
+              r_cargas = "Descansos cortos de 60s. Enfoque en transiciones.";
+            } else if (dia === 'Mar') {
+              r_sesion = "Sesión específica Hyrox: 1.5 km carrera umbral + 2 estaciones x 3 rondas (Ski Erg & Sled Pull).";
+              r_cargas = "Ritmos de carrera.";
+            } else if (dia === 'Jue') {
+              r_tipo = "Pilates";
+              r_sesion = "🧘 Pilates de recuperación e higiene postural pre-simulacros.";
+              r_cargas = "Descompresión y respiración.";
+            } else if (dia === 'Vie') {
+              r_sesion = "Intervalos específicos de carrera: 3x1.5 km a ritmo de carrera. 3 min de descanso.";
+              r_cargas = "Ritmo objetivo de competencia: ~7:15/km.";
+            } else if (dia === 'Sáb') {
+              if (w === 15) {
+                r_sesion = "⏱ Simulacro 50% Hyrox: 4 km carrera + 4 estaciones específicas en pareja.";
+              } else if (w === 16) {
+                r_sesion = "⏱ Simulacro 75% Hyrox: 6 km carrera + 6 estaciones específicas en pareja.";
+              } else if (w === 17) {
+                r_sesion = "🧘 Deload week: Trote suave de 3 km y estiramientos.";
+              } else if (w === 18) {
+                r_sesion = "🏁 ¡SIMULACRO HYROX COMPLETO #1! (8 km + 8 estaciones en pareja).";
+              } else if (w === 19) {
+                r_sesion = "⏱ Simulacro 75% Hyrox: Enfoque en debilidades y transiciones en pareja.";
+              } else if (w === 20) {
+                r_sesion = "🧘 Deload week: Descanso activo. Movilidad articular.";
+              } else if (w === 21) {
+                r_sesion = "🏁 ¡SIMULACRO HYROX COMPLETO #2! (Tu predictor real de carrera en pareja).";
+              } else if (w === 22) {
+                r_sesion = "⏱ Simulacro 50% Hyrox (Tapering para ganar frescura en pareja).";
+              } else if (w === 23) {
+                r_sesion = "🧘 Descanso activo y preparación mental. 4 km trote suave.";
+              } else if (w === 24) {
+                r_sesion = "🏆 ¡DÍA DE COMPETENCIA: HYROX BARCELONA 2026! 🏆";
+              }
+              r_cargas = "Estrategia de dobles (Lunges, Wall Balls, Sleds).";
+            }
+          }
+
+          // Guardar Felipe
+          plan.Felipe[w][dia] = { tipo, sesion, cargas };
+          
+          // Guardar Rosemary
+          let r_tipo_final = r_tipo;
+          if (dia === 'Jue' && mesociclo !== "M1") r_tipo_final = "Pilates";
+          plan.Rosemary[w][dia] = { tipo: r_tipo_final, sesion: r_sesion, cargas: r_cargas };
+        });
+      }
+
+      database.plan = plan;
+      guardarBaseDatos();
+    }
+
+    // --- NOTIFICADOR TOAST ---
+    function showToast(mensaje, tipo = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${tipo} border-l-4 p-4 rounded-xl shadow-xl flex justify-between items-center bg-zinc-900 border-borderColor transition-all duration-300`;
+      
+      let icon = 'ℹ️';
+      if (tipo === 'success') { icon = '✅'; toast.classList.add('border-l-emerald-500'); }
+      if (tipo === 'error') { icon = '❌'; toast.classList.add('border-l-red-500'); }
+
+      toast.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-sm">${icon}</span>
+          <span class="text-sm font-bold text-white">${mensaje}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-zinc-500 hover:text-white font-bold ml-2">×</button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function showLoading(mostrar = true) {
+      const loader = document.getElementById('loader-overlay');
+      if (mostrar) loader.classList.add('active');
+      else loader.classList.remove('active');
+    }
+
+    // --- CONTROL DE NAVEGACIÓN ---
+    function switchView(vista) {
+      vistaActiva = vista;
+      document.querySelectorAll('.spa-view').forEach(v => v.classList.add('hidden'));
+      document.getElementById(`view-${vista}`).classList.remove('hidden');
+
+      // Actualizar estados visuales de la navegación móvil inferior
+      document.querySelectorAll('.nav-bar-item').forEach(btn => {
+        btn.classList.remove('text-hyroxYellow');
+        btn.classList.add('text-zinc-500');
+      });
+      document.getElementById(`nav-btn-${vista}`).classList.add('text-hyroxYellow');
+      document.getElementById(`nav-btn-${vista}`).classList.remove('text-zinc-500');
+
+      if (vista === 'dashboard') {
+        renderDashboard();
+      } else if (vista === 'plan') {
+        renderPlanSemanal();
+      } else if (vista === 'registro') {
+        actualizarPlanSegunFecha(fechaGlobalActiva);
+      }
+    }
+
+    function setSubTab(tab) {
+      subTabActiva = tab;
+      document.querySelectorAll('.subtab-btn').forEach(b => {
+        b.classList.remove('bg-hyroxYellow', 'text-black');
+        b.classList.add('bg-bgCard', 'text-zinc-400', 'border', 'border-borderColor');
+      });
+      document.getElementById(`subtab-${tab}`).classList.add('bg-hyroxYellow', 'text-black');
+      document.getElementById(`subtab-${tab}`).classList.remove('bg-bgCard', 'text-zinc-400', 'border', 'border-borderColor');
+
+      document.querySelectorAll('.subtab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`form-content-${tab}`).classList.remove('hidden');
+    }
+
+    function setAtletaActivo(atleta) {
+      atletaActivo = atleta;
+      document.querySelectorAll('#global-athlete-selector button').forEach(b => {
+        b.classList.remove('bg-hyroxYellow', 'text-black');
+        b.classList.add('text-zinc-400');
+      });
+      document.getElementById(`btn-atleta-${atleta}`).classList.add('bg-hyroxYellow', 'text-black');
+      document.getElementById(`btn-atleta-${atleta}`).classList.remove('text-zinc-400');
+
+      // Actualizar interfaz según el atleta
+      actualizarPlanSegunFecha(fechaGlobalActiva);
+      if (vistaActiva === 'dashboard') renderDashboard();
+      if (vistaActiva === 'plan') renderPlanSemanal();
+    }
+
+    function updateRpeLabel(val) {
+      document.getElementById('rpe-val').innerText = val;
+      document.getElementById('rpe-txt').innerText = RPE_SENSACIONES[val] || '';
+    }
+
+    // --- CARGAR SESIÓN DE HOY BASADO EN FECHA SELECCIONADA ---
+    function obtenerSemanaYMesociclo(fechaStr) {
+      // FECHA DE INICIO DE PLANIFICACIÓN OFICIAL: Lunes, 4 de mayo de 2026 (Semana 1)
+      const start = new Date("2026-05-04T00:00:00");
+      const target = new Date(fechaStr + "T00:00:00");
+      
+      const diffTime = target - start;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      let weekNum = Math.floor(diffDays / 7) + 1;
+      
+      if (weekNum < 1) weekNum = 1;
+      if (weekNum > 24) weekNum = 24;
+      
+      let mesociclo = "M1";
+      let fase = "Base Aeróbica";
+      let esDescarga = (weekNum === 4 || weekNum === 9 || weekNum === 14 || weekNum === 20 || weekNum === 23);
+
+      if (weekNum <= 4) {
+        mesociclo = "M1";
+        fase = "Base Aeróbica";
+      } else if (weekNum <= 9) {
+        mesociclo = "M2";
+        fase = "Fuerza-Resistencia";
+      } else if (weekNum <= 14) {
+        mesociclo = "M3";
+        fase = "Bloque Mixto";
+      } else {
+        mesociclo = "M4";
+        fase = "Especificidad & Taper";
+      }
+
+      return { weekNum, mesociclo, fase, esDescarga };
+    }
+
+    function actualizarPlanSegunFecha(fechaVal) {
+      if (!fechaVal) return;
+      
+      const infoSemana = obtenerSemanaYMesociclo(fechaVal);
+      const fechaObj = new Date(fechaVal + 'T00:00:00');
+      const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const diaSemana = dias[fechaObj.getDay()];
+      
+      // Obtener del plan maestro guardado y editable en la BD
+      const plan = database.plan[atletaActivo]?.[infoSemana.weekNum]?.[diaSemana];
+      
+      const partes = fechaVal.split('-');
+      const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+      document.getElementById('plan-hoy-date').innerText = fechaFormateada;
+
+      if (plan) {
+        document.getElementById('plan-hoy-tag').innerText = plan.tipo;
+        document.getElementById('plan-hoy-week-tag').innerText = `${infoSemana.mesociclo} W${infoSemana.weekNum}`;
+        document.getElementById('plan-hoy-nombre').innerText = plan.sesion;
+        document.getElementById('plan-hoy-loads').innerText = `Sugerencia: ${plan.cargas}`;
+        
+        // Auto-completar campos de sesión general si el usuario los necesita heredar
+        document.getElementById('gen-tipo').value = plan.tipo.includes('Fuerza') ? 'Fuerza con Superseries' : (plan.tipo.includes('Interval') ? 'Interval Run' : (plan.tipo.includes('Clase') ? 'Clase Hyrox' : 'Z2 Carrera'));
+        document.getElementById('gen-detalle').value = plan.sesion;
+      }
+    }
+
+    function cargarPlanHoy() {
+      actualizarPlanSegunFecha(fechaGlobalActiva);
+    }
+
+    // --- SINCRONIZADOR DE FECHA GLOBAL EN TIEMPO REAL ---
+    function initSincronizadorFechas() {
+      const idsFechas = ['gen-fecha', 'fuerza-fecha', 'carrera-fecha', 'bio-fecha', 'test-fecha'];
+      
+      idsFechas.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+          input.value = fechaGlobalActiva;
+          
+          input.addEventListener('change', function() {
+            fechaGlobalActiva = this.value;
+            
+            // Sincronizar visualmente el resto de formularios
+            idsFechas.forEach(otroId => {
+              const otroInput = document.getElementById(otroId);
+              if (otroInput) otroInput.value = fechaGlobalActiva;
+            });
+            
+            // Recargar plan sugerido al vuelo
+            actualizarPlanSegunFecha(fechaGlobalActiva);
+          });
+        }
+      });
+    }
+
+    // --- GESTIÓN DE PLANIFICADOR DE 24 SEMANAS Y EDICIÓN ---
+
+    function seleccionarMesocicloDesdeFiltro(mesoId) {
+      const filtroSemana = document.getElementById('plan-filtro-semana');
+      filtroSemana.innerHTML = '';
+      
+      const rango = LIMITES_MESOCICLOS[mesoId];
+      for (let s = rango.min; s <= rango.max; s++) {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.innerText = `Semana ${s}`;
+        if (s === semanaSeleccionadaPlan) opt.selected = true;
+        filtroSemana.appendChild(opt);
+      }
+      
+      // Auto-cargar la primera semana de ese mesociclo si la actual se sale del rango
+      if (semanaSeleccionadaPlan < rango.min || semanaSeleccionadaPlan > rango.max) {
+        semanaSeleccionadaPlan = rango.min;
+        filtroSemana.value = rango.min;
+      }
+
+      actualizarCalendarioSemanal(semanaSeleccionadaPlan);
+    }
+
+    function inicializarSelectoresPlan() {
+      // Sincronizar Mesociclo de acuerdo a la semana actual por fecha
+      const infoHoy = obtenerSemanaYMesociclo(fechaGlobalActiva);
+      semanaSeleccionadaPlan = infoHoy.weekNum;
+      
+      document.getElementById('plan-filtro-mesociclo').value = infoHoy.mesociclo;
+      seleccionarMesocicloDesdeFiltro(infoHoy.mesociclo);
+    }
+
+    function actualizarCalendarioSemanal(weekNum) {
+      semanaSeleccionadaPlan = weekNum;
+      
+      // Indicar si la semana cargada es de Descarga o Carga
+      const esDescarga = (weekNum === 4 || weekNum === 9 || weekNum === 14 || weekNum === 20 || weekNum === 23);
+      const statusTag = document.getElementById('plan-semana-status-tag');
+      if (esDescarga) {
+        statusTag.innerText = "Descarga / Deload";
+        statusTag.className = "text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-950/50 text-blue-400 border border-blue-800/40";
+      } else {
+        statusTag.innerText = "Carga / Progresivo";
+        statusTag.className = "text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-yellow-950/50 text-hyroxYellow border border-yellow-800/40";
+      }
+
+      const container = document.getElementById('weekly-plan-list');
+      container.innerHTML = '';
+      
+      const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+      dias.forEach(dia => {
+        const plan = database.plan[atletaActivo]?.[weekNum]?.[dia];
+        if (!plan) return;
+
+        let tipoClase = 'badge-descanso bg-zinc-800 text-zinc-400';
+        if (plan.tipo.includes('Fuerza')) tipoClase = 'badge-fuerza bg-emerald-950/40 text-emerald-400 border border-emerald-800/40';
+        else if (plan.tipo.includes('Interval') || plan.tipo.includes('Carrera') || plan.tipo.includes('Run')) tipoClase = 'badge-carrera bg-yellow-950/40 text-hyroxYellow border border-yellow-800/30';
+        else if (plan.tipo.includes('Clase')) tipoClase = 'badge-clase bg-purple-950/40 text-purple-400 border border-purple-800/40';
+        else if (plan.tipo.includes('Simulacro')) tipoClase = 'badge-simulacro bg-red-950/40 text-red-400 border border-red-800/40';
+        else if (plan.tipo.includes('Pilates')) tipoClase = 'badge-clase bg-indigo-950/40 text-indigo-400 border border-indigo-800/40';
+
+        const card = document.createElement('div');
+        card.className = `day-card bg-bgCard border border-borderColor p-4 rounded-xl flex flex-col gap-2 relative`;
+
+        card.innerHTML = `
+          <!-- Botón de edición del día -->
+          <button onclick="abrirModalEdicion(${weekNum}, '${dia}')" class="absolute top-4 right-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white p-2 rounded-lg transition-all" title="Editar este día">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+
+          <div class="flex items-center gap-3">
+            <div class="day-badge w-12 h-12 bg-bgInput border border-borderColor rounded-lg flex flex-col items-center justify-center font-extrabold text-zinc-400">
+              <span class="text-xs uppercase">${dia}</span>
+            </div>
+            <div class="flex flex-col gap-1">
+              <span class="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded self-start ${tipoClase}">${plan.tipo}</span>
+              <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">${DIAS_COMPLETOS[dia]}</span>
+            </div>
+          </div>
+          <h4 class="text-sm font-extrabold text-white uppercase tracking-tight mt-1 mr-8 leading-snug">${plan.sesion}</h4>
+          <p class="text-xs text-zinc-400 bg-bgInput p-2.5 rounded-lg border-l-2 border-zinc-600 mt-1 leading-relaxed">${plan.cargas}</p>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // --- MODAL DE EDICIÓN FLOTANTE SPA ---
+    function abrirModalEdicion(semana, dia) {
+      const plan = database.plan[atletaActivo][semana][dia];
+      if (!plan) return;
+
+      document.getElementById('modal-dia-id').value = dia;
+      document.getElementById('modal-semana-id').value = semana;
+      document.getElementById('modal-dia-header').innerText = `${DIAS_COMPLETOS[dia]} (S${semana})`;
+
+      document.getElementById('modal-tipo').value = plan.tipo;
+      document.getElementById('modal-sesion').value = plan.sesion;
+      document.getElementById('modal-cargas').value = plan.cargas;
+
+      const modal = document.getElementById('plan-edit-modal');
+      const content = document.getElementById('plan-edit-modal-content');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      content.classList.remove('translate-y-4');
+    }
+
+    function cerrarModalEdicion() {
+      const modal = document.getElementById('plan-edit-modal');
+      const content = document.getElementById('plan-edit-modal-content');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      content.classList.add('translate-y-4');
+    }
+
+    function guardarEdicionPlan() {
+      const dia = document.getElementById('modal-dia-id').value;
+      const semana = parseInt(document.getElementById('modal-semana-id').value);
+
+      database.plan[atletaActivo][semana][dia] = {
+        tipo: document.getElementById('modal-tipo').value,
+        sesion: document.getElementById('modal-sesion').value,
+        cargas: document.getElementById('modal-cargas').value
+      };
+
+      guardarBaseDatos();
+      cerrarModalEdicion();
+      showToast('¡Planificación modificada y guardada!');
+      
+      // Refrescar vistas
+      actualizarCalendarioSemanal(semanaSeleccionadaPlan);
+      actualizarPlanSegunFecha(fechaGlobalActiva);
+    }
+
+    function renderPlanSemanal() {
+      actualizarCalendarioSemanal(semanaSeleccionadaPlan);
+    }
+
+    // --- RESTAURAR DE FÁBRICA ---
+    function confirmarReinicioPlan() {
+      if (confirm('⚠️ ¿Estás seguro de que deseas restaurar la planificación de fábrica? Esto sobrescribirá todos los cambios manuales que hayas hecho en el calendario de 24 semanas.')) {
+        inicializarPlanMaestroPlantilla();
+        showToast('Planificación restaurada al estado original progresivo.');
+        actualizarCalendarioSemanal(semanaSeleccionadaPlan);
+        actualizarPlanSegunFecha(fechaGlobalActiva);
+      }
+    }
+
+    // --- FORMULARIOS DINÁMICOS FUERZA ---
+    function addFilaFuerza() {
+      const container = document.getElementById('fuerza-container');
+      const div = document.createElement('div');
+      div.className = 'dynamic-row';
+      div.innerHTML = `
+        <input type="number" class="form-control s-reps bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="Reps" required>
+        <input type="number" class="form-control s-peso bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="lbs" required>
+        <input type="number" class="form-control s-rpe bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="RPE" min="1" max="10">
+        <button type="button" onclick="this.parentElement.remove()" class="remove-row-btn w-full bg-red-950/20 text-red-500 border border-red-900/30 rounded-xl h-11 flex items-center justify-center font-bold">×</button>
+      `;
+      container.appendChild(div);
+    }
+
+    // --- FORMULARIOS DINÁMICOS CARRERA ---
+    function addFilaCarrera() {
+      const container = document.getElementById('carrera-container');
+      const div = document.createElement('div');
+      div.className = 'dynamic-row';
+      div.innerHTML = `
+        <input type="number" class="form-control c-mts bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="Metros" required>
+        <input type="text" class="form-control c-tiempo bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="MM:SS" required>
+        <input type="number" class="form-control c-fc bg-bgInput border border-borderColor text-white w-full p-3 rounded-xl focus:border-hyroxYellow focus:outline-none" placeholder="FC Prom">
+        <button type="button" onclick="this.parentElement.remove()" class="remove-row-btn w-full bg-red-950/20 text-red-500 border border-red-900/30 rounded-xl h-11 flex items-center justify-center font-bold">×</button>
+      `;
+      container.appendChild(div);
+    }
+
+    // ============================================================
+    // REGISTRO DE ESCRITURA EN BASE DE DATOS LOCAL
+    // ============================================================
+
+    function saveGeneral() {
+      showLoading(true);
+      const fechaRaw = document.getElementById('gen-fecha').value;
+      const partes = fechaRaw.split('-');
+      const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+      const data = {
+        fecha: fechaFormateada,
+        atleta: atletaActivo,
+        tipo: document.getElementById('gen-tipo').value,
+        detalle: document.getElementById('gen-detalle').value,
+        tiempo: document.getElementById('gen-tiempo').value,
+        distancia: parseFloat(document.getElementById('gen-distancia').value) || 0,
+        fcProm: parseInt(document.getElementById('gen-fc-prom').value) || 0,
+        fcMax: parseInt(document.getElementById('gen-fc-max').value) || 0,
+        rpe: parseInt(document.getElementById('gen-rpe').value) || 7,
+        notas: document.getElementById('gen-notas').value
+      };
+
+      database.sesiones.push(data);
+      guardarBaseDatos();
+      showLoading(false);
+      showToast('¡Sesión guardada de forma instantánea!');
+      
+      // Limpiar solo detalle y tiempo, mantener fecha
+      document.getElementById('gen-detalle').value = '';
+      document.getElementById('gen-tiempo').value = '';
+      document.getElementById('gen-distancia').value = '';
+      document.getElementById('gen-fc-prom').value = '';
+      document.getElementById('gen-fc-max').value = '';
+      document.getElementById('gen-notas').value = '';
+      updateRpeLabel(7);
+      cargarPlanHoy();
+    }
+
+    function saveFuerza() {
+      showLoading(true);
+      const rows = document.querySelectorAll('#fuerza-container .dynamic-row');
+      const series = [];
+      const fechaRaw = document.getElementById('fuerza-fecha').value;
+      const partes = fechaRaw.split('-');
+      const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+      rows.forEach(r => {
+        const reps = parseInt(r.querySelector('.s-reps').value);
+        const peso = parseFloat(r.querySelector('.s-peso').value);
+        const rpe = parseInt(r.querySelector('.s-rpe').value) || null;
+        if (reps && peso) {
+          series.push({ reps, peso, rpe });
+        }
+      });
+
+      if (series.length === 0) {
+        showLoading(false);
+        showToast('Debes ingresar al menos una serie válida.', 'error');
+        return;
+      }
+
+      const data = {
+        fecha: fechaFormateada,
+        atleta: atletaActivo,
+        ejercicio: document.getElementById('fuerza-ejercicio').value,
+        series: series
+      };
+
+      database.fuerza.push(data);
+      guardarBaseDatos();
+      showLoading(false);
+      showToast('¡Series de fuerza registradas!');
+      
+      // Reiniciar filas
+      document.getElementById('fuerza-container').innerHTML = '';
+      for (let i = 0; i < 3; i++) addFilaFuerza();
+    }
+
+    function saveCarrera() {
+      showLoading(true);
+      const rows = document.querySelectorAll('#carrera-container .dynamic-row');
+      const intervalos = [];
+      const fechaRaw = document.getElementById('carrera-fecha').value;
+      const partes = fechaRaw.split('-');
+      const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+      rows.forEach(r => {
+        const mts = parseInt(r.querySelector('.c-mts').value);
+        const tiempo = r.querySelector('.c-tiempo').value;
+        const fc = parseInt(r.querySelector('.c-fc').value) || null;
+
+        if (mts && tiempo) {
+          const kms = mts / 1000;
+          const partesTiempo = tiempo.split(':').map(p => parseInt(p, 10));
+          let segs = 0;
+          if (partesTiempo.length === 2) segs = partesTiempo[0]*60 + partesTiempo[1];
+          
+          let ritmo = '';
+          if (segs > 0 && kms > 0) {
+            const segsPorKm = segs / kms;
+            const min = Math.floor(segsPorKm / 60);
+            const seg = Math.round(segsPorKm % 60);
+            ritmo = `${min}:${String(seg).padStart(2, '0')}`;
+          }
+
+          intervalos.push({ distancia: mts, tiempo, ritmo, fc });
+        }
+      });
+
+      if (intervalos.length === 0) {
+        showLoading(false);
+        showToast('Ingresa al menos un intervalo.', 'error');
+        return;
+      }
+
+      const data = {
+        fecha: fechaFormateada,
+        atleta: atletaActivo,
+        tipo: document.getElementById('carrera-tipo').value,
+        intervalos: intervalos
+      };
+
+      database.carrera.push(data);
+      guardarBaseDatos();
+      showLoading(false);
+      showToast('¡Intervalos de carrera guardados!');
+      
+      document.getElementById('carrera-container').innerHTML = '';
+      for (let i = 0; i < 3; i++) addFilaCarrera();
+    }
+
+    function saveBiometricos() {
+      showLoading(true);
+      const fechaRaw = document.getElementById('bio-fecha').value;
+      const partes = fechaRaw.split('-');
+      const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+      const data = {
+        fecha: fechaFormateada,
+        atleta: atletaActivo,
+        peso: parseFloat(document.getElementById('bio-peso').value),
+        musculo: parseFloat(document.getElementById('bio-musculo').value) || null,
+        grasa: parseFloat(document.getElementById('bio-grasa').value) || null,
+        fcReposo: parseInt(document.getElementById('bio-fc').value) || null,
+        sueno: parseFloat(document.getElementById('bio-sueno').value) || null,
+        notas: document.getElementById('bio-notas').value
+      };
+
+      database.biometricos.push(data);
+      guardarBaseDatos();
+      showLoading(false);
+      showToast('¡Datos biométricos actualizados!');
+      
+      // Limpiar datos numéricos manteniendo consistencia
+      document.getElementById('bio-peso').value = '';
+      document.getElementById('bio-musculo').value = '';
+      document.getElementById('bio-grasa').value = '';
+      document.getElementById('bio-fc').value = '';
+      document.getElementById('bio-sueno').value = '';
+      document.getElementById('bio-notas').value = '';
+    }
+
+    function saveTest() {
+      showLoading(true);
+      const fechaRaw = document.getElementById('test-fecha').value;
+      const partes = fechaRaw.split('-');
+      const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+      const data = {
+        fecha: fechaFormateada,
+        atleta: atletaActivo,
+        test: document.getElementById('test-tipo').value,
+        resultado: document.getElementById('test-resultado').value,
+        detalle: document.getElementById('test-detalle').value
+      };
+
+      database.tests.push(data);
+      guardarBaseDatos();
+      showLoading(false);
+      showToast('¡Benchmark registrado!');
+      document.getElementById('test-resultado').value = '';
+      document.getElementById('test-detalle').value = '';
+    }
+
+    // ============================================================
+    // GESTIÓN DE ANALÍTICAS EN TIEMPO REAL (DASHBOARD)
+    // ============================================================
+
+    function renderDashboard() {
+      showLoading(true);
+
+      const hoy = new Date();
+      const hace28Dias = new Date();
+      hace28Dias.setDate(hoy.getDate() - 28);
+
+      // --- 1. PROCESAR SESIONES (KPIs) ---
+      let kmTotales = 0;
+      let sesionesCont = 0;
+      let rpeSuma = 0;
+      let rpeCont = 0;
+      let fcSuma = 0;
+      let fcCont = 0;
+
+      const kmsPorSemana = [0, 0, 0, 0];
+      const etiquetasSemanas = [];
+      const limitesSemanas = [];
+
+      for (let i = 3; i >= 0; i--) {
+        const inicio = new Date();
+        inicio.setDate(hoy.getDate() - (i + 1) * 7 + 1);
+        inicio.setHours(0,0,0,0);
+        
+        const fin = new Date();
+        fin.setDate(hoy.getDate() - i * 7);
+        fin.setHours(23,59,59,999);
+        
+        limitesSemanas.push({ inicio, fin });
+        etiquetasSemanas.push(`${inicio.getDate()}/${inicio.getMonth()+1}`);
+      }
+
+      database.sesiones.forEach(s => {
+        if (s.atleta !== atletaActivo) return;
+        const fechaObj = parseFechaObjeto(s.fecha);
+
+        if (fechaObj >= hace28Dias && fechaObj <= hoy) {
+          sesionesCont++;
+          if (s.distancia > 0) kmTotales += s.distancia;
+          if (s.rpe > 0) { rpeSuma += s.rpe; rpeCont++; }
+          if (s.fcProm > 0) { fcSuma += s.fcProm; fcCont++; }
+        }
+
+        // Clasificar para gráfico semanal
+        if (s.distancia > 0) {
+          for (let w = 0; w < 4; w++) {
+            if (fechaObj >= limitesSemanas[w].inicio && fechaObj <= limitesSemanas[w].fin) {
+              kmsPorSemana[w] += s.distancia;
+              break;
+            }
+          }
+        }
+      });
+
+      document.getElementById('kpi-run').innerText = `${kmTotales.toFixed(1)} km`;
+      document.getElementById('kpi-sesiones').innerText = sesionesCont;
+      document.getElementById('kpi-rpe').innerText = rpeCont > 0 ? `${(rpeSuma / rpeCont).toFixed(1)} / 10` : '-';
+      document.getElementById('kpi-fc').innerText = fcCont > 0 ? `${Math.round(fcSuma / fcCont)} ppm` : '-';
+
+      // --- 2. PROCESAR BIOMÉTRICOS ---
+      let pesoActual = '-';
+      let grasaActual = '-';
+      const ultimosPesos = [];
+
+      const bioFiltrados = database.biometricos
+        .filter(b => b.atleta === atletaActivo)
+        .sort((a,b) => parseFechaObjeto(a.fecha) - parseFechaObjeto(b.fecha));
+
+      if (bioFiltrados.length > 0) {
+        const u = bioFiltrados[bioFiltrados.length - 1];
+        pesoActual = `${u.peso.toFixed(1)} kg`;
+        grasaActual = u.grasa ? `${u.grasa.toFixed(1)}%` : '-';
+
+        bioFiltrados.slice(-5).forEach(r => {
+          ultimosPesos.push({
+            fecha: r.fecha.substring(0, 5),
+            peso: r.peso
+          });
+        });
+      }
+
+      document.getElementById('kpi-peso').innerText = pesoActual;
+      document.getElementById('kpi-grasa').innerText = grasaActual;
+
+      // --- 3. RENDIMIENTO BENCHMARKS ---
+      let test5k = '-';
+      let test10k = '-';
+      let testSim = '-';
+
+      database.tests.forEach(t => {
+        if (t.atleta !== atletaActivo) return;
+        if (t.test === 'Test 5K') test5k = t.resultado;
+        if (t.test === 'Test 10K') test10k = t.resultado;
+        if (t.test.includes('Simulacro') || t.test.includes('Completo')) testSim = `${t.test}: ${t.resultado}`;
+      });
+
+      document.getElementById('test-5k-val').innerText = test5k;
+      document.getElementById('test-10k-val').innerText = test10k;
+      document.getElementById('test-sim-val').innerText = testSim;
+
+      // --- RENDERIZAR GRÁFICOS ---
+      renderGraficoKms(etiquetasSemanas, kmsPorSemana);
+      renderGraficoPesos(ultimosPesos);
+
+      showLoading(false);
+    }
+
+    function renderGraficoKms(labels, valores) {
+      const ctx = document.getElementById('chartWeeklyKms').getContext('2d');
+      if (chartKmsInstancia) chartKmsInstancia.destroy();
+
+      chartKmsInstancia = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: valores,
+            backgroundColor: '#FFD60A',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { grid: { color: '#262626' }, ticks: { color: '#A1A1AA', font: { family: 'Space Grotesk', weight: '700' } } },
+            x: { grid: { display: false }, ticks: { color: '#A1A1AA', font: { family: 'Space Grotesk', weight: '700' } } }
+          }
+        }
+      });
+    }
+
+    function renderGraficoPesos(datos) {
+      const ctx = document.getElementById('chartWeightTrend').getContext('2d');
+      if (chartPesosInstancia) chartPesosInstancia.destroy();
+
+      if (datos.length === 0) {
+        ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
+        return;
+      }
+
+      chartPesosInstancia = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: datos.map(d => d.fecha),
+          datasets: [{
+            data: datos.map(d => d.peso),
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            borderWidth: 3,
+            tension: 0.25,
+            pointBackgroundColor: '#10B981'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { grid: { color: '#262626' }, ticks: { color: '#A1A1AA', font: { family: 'Space Grotesk', weight: '700' } } },
+            x: { grid: { display: false }, ticks: { color: '#A1A1AA', font: { family: 'Space Grotesk', weight: '700' } } }
+          }
+        }
+      });
+    }
+
+    // ============================================================
+    // RESPALDO DE BASE DE DATOS PORTÁTIL
+    // ============================================================
+
+    function exportarBaseDatos() {
+      const fileData = JSON.stringify(database, null, 2);
+      const blob = new Blob([fileData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hyrox_tracker_backup_${atletaActivo}_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('¡Archivo JSON exportado y descargado!');
+    }
+
+    function importarBaseDatos(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsedData = JSON.parse(e.target.result);
+          
+          if (parsedData.sesiones && parsedData.fuerza && parsedData.carrera && parsedData.plan) {
+            database = parsedData;
+            guardarBaseDatos();
+            showToast('¡Base de datos importada con éxito!');
+            switchView('registro');
+          } else {
+            showToast('El archivo JSON no tiene la estructura de periodización requerida.', 'error');
+          }
+        } catch(err) {
+          showToast('Error al leer el archivo JSON.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // --- ENTORNO EN MARCHA ---
+    cargarBaseDatos();
+    cargarPlanHoy();
+    initSincronizadorFechas();
+    inicializarSelectoresPlan();
+    
+    // Rellenar filas iniciales dinámicas
+    for (let i = 0; i < 3; i++) addFilaFuerza();
+    for (let i = 0; i < 3; i++) addFilaCarrera();
+
+  </script>
+
+</body>
+</html>
